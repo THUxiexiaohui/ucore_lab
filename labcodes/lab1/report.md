@@ -190,7 +190,7 @@ make new_Debug
 	x /10i $pc  
 ```
 	
-运行"make new_Debug"便可得到
+>  * 运行"make new_Debug"便可得到
 
 ```
 	Breakpoint 1, 0x00007c00 in ?? ()
@@ -213,7 +213,7 @@ make new_Debug
 >  * 在终端运行"make new_Debug" 
 >  * 并键入"continue"后
 
-可以在bin/q.log中读到"call bootmain"前执行的命令
+>  * 可以在bin/q.log中读到"call bootmain"前执行的命令
 ```
 	0x000fd12d:  cli    
 	0x000fd12e:  cld    
@@ -260,6 +260,7 @@ make new_Debug
 >  * 其与bootasm.S和bootblock.asm中的代码相同。
 
 [练习2.4]自己找一个bootloader或内核中的代码位置，设置断点并进行测试。 
+
 > * 在makefile中添加内容
 	```
 	new_Debug2: $(UCOREIMG)
@@ -268,6 +269,7 @@ make new_Debug
 		$(V)$(TERMINAL) -e "gdb -q -x tools/new_Debug2"
 	```
 > * 新建tools/new_Debug2，在里面添加内容
+
 	```
 	file obj/bootblock.o
 	target remote :1234
@@ -275,6 +277,7 @@ make new_Debug
 	continue
 	```
 > * 在终端使用命令进入调试模式，成功跳到断点bootmain.c中的第10行
+
 	```
 	make new_Debug2
 	```
@@ -314,7 +317,7 @@ make new_Debug
 	    outb %al, $0x60    
 ```
 
-> * 初始化GDT表
+>  * 初始化GDT表
 ```
 	    lgdt gdtdesc
 ```
