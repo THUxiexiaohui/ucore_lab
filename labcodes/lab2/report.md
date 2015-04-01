@@ -7,8 +7,8 @@
 ## [练习1]
 
 1.	<b>实现first-fit连续物理内存分配算法。(需要编程)</b>
-
-	> * 在memlayout.h文件中了解了结构体Page的成员基本属性以及参数设置方式
+	> * 实现步骤：
+	> * 在memlayout.h文件中了解了结构体Page的成员基本属性以及参数设置方式。其中ref属性使用set_page_ref函数进行设置，flags的两个标志位，PG_reserved与PG_property使用Set与Clear方法去设为1或者0。
 	
 	```
 	struct Page {
@@ -18,121 +18,16 @@
     	list_entry_t page_link;         // free list link
 	};
 	```
-	ref属性使用set_page_ref函数进行设置<br/>
-	flags的两个标志位，PG_reserved与PG_property使用Set与Clear方法去设为1或者0<br/>
-
+	
 	> * 编写函数default_init
-	
-	```
-	list_init(&free_list);
-    nr_free = 0;
-	```
-	
 	> * 编写函数default_init_memmap<br/>
 	首先将目前page开始的n页进行初始化，对于第一页，将其flags中PG_property位设为1，property属性要设为n，之后将空闲块数量设为n，将第一页加入空闲块链表。
-	
-	```
-	for (; p != base + n; p ++) {
-		ClearPageReserved(p);
-		if (p == base) {
-			SetPageProperty(p);
-			p->property = n;
-		} else {
-			ClearPageProperty(p);
-		}
-		set_page_ref(p, 0);
-	}
-	nr_free += n;
-    list_add_before(&free_list, &(base->page_link));
-	```
-	
 	> * 编写函数default_alloc_pages<br/>
-	从free_list里找到第一个符合条件的块fp，若没有直接退出
-	
-	```
-	struct Page *fp = NULL;
-    list_entry_t *le = &free_list;
-    while ((le = list_next(le)) != &free_list) {		
-        struct Page *p = le2page(le, page_link);
-        if (p->property >= n) {
-            fp = p;
-            break;
-        }
-    }
-    if (fp == NULL) return fp;
-	```
-	把连续的n个页置为不可被分配，并在free_list中删除该空闲块
-	
-	```
-    for (i = 0; i < n; ++i) {							
-    	struct Page *p = fp + i;
-    	SetPageReserved(p);
-    	ClearPageProperty(p);
-    }
-    list_del(le);
-	```
-	若该空闲块在分配n页后还有剩余remain，则将剩余部分重新加入free_list，并重置该剩余部分的头页，更新总剩余块数并返回
-	
-	```
-	list_entry_t *lenext = le->next;
-	if (remain > 0) {									
-    	struct Page *newp = fp + n;
-    	SetPageProperty(newp);
-    	newp->property = remain;
-    	list_add_before(lenext, &(newp->page_link));
-    }
-    nr_free -= n;
-    return fp;
-	```
-
+	从free_list里找到第一个符合条件的块fp，若没有直接退出，接着把连续的n个页置为不可被分配，并在free_list中删除该空闲块。若该空闲块在分配n页后还有剩余remain，则将剩余部分重新加入free_list，并重置该剩余部分的头页，更新总剩余块数并返回
 	> * 编写函数default_free_pages<br/>
-	将空闲块中的n个连续页置为可用，做法与default_init_memmap中的初始化一致
+	将空闲块中的n个连续页置为可用，做法与default_init_memmap中的初始化一致，再在free_list中找到这个空闲块该插入的位置，根据地址大小顺序查找，判断该插入位置的前后块的长度，如果可以合并就将后一个的长度加到前一个上，并将后一个删除
 	
-	```
-	struct Page *p = base;
-    for (; p != base + n; p ++) {							
-        ClearPageReserved(p);
-        if (p == base) {
-        	SetPageProperty(p);
-        	p->property = n;
-        } else {
-        	ClearPageProperty(p);
-        }
-        set_page_ref(p, 0);
-    }
-	```
-	
-	再在free_list中找到这个空闲块该插入的位置，位于prevp和nextp之间插入
-	
-	```
-	list_entry_t *le = &free_list;
-    struct Page *prevp, *nextp;
-	nextp = le2page(le, page_link);
-    while ((le = list_next(le)) != &free_list) {			
-    	prevp = nextp;
-    	nextp = le2page(le, page_link);
-    	if (nextp > base) break;
-    }
-    list_add_before(le, &(base->page_link));				
-	```
-	
-	最后判断prevp和nextp的长度，如果可以合并就将后一个的长度加到前一个上，并将后一个销毁
-	
-	```
-	if (base + base->property == nextp) {					
-    	base->property += nextp->property;
-    	ClearPageProperty(nextp);
-    	list_del(&(nextp->page_link));
-    }
-    if (prevp + prevp->property == base) {					
-    	prevp->property += base->property;
-    	ClearPageProperty(base);
-    	list_del(&(base->page_link));
-    }
-    nr_free += n;
-	```
 2.	<b>你的first fit算法是否有进一步的改进空间？</b>
-
 	> * 用AVL树或者红黑树来代替链表维护空闲块，可以使查找插入和删除的速度得到提升。
 
 ### 练习2
