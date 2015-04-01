@@ -190,7 +190,7 @@ make new_Debug
 	x /10i $pc  
 ```
 	
-运行"make new_Debug"便可得到
+>  * 运行"make new_Debug"便可得到
 
 ```
 	Breakpoint 1, 0x00007c00 in ?? ()
@@ -213,7 +213,7 @@ make new_Debug
 >  * 在终端运行"make new_Debug" 
 >  * 并键入"continue"后
 
-可以在bin/q.log中读到"call bootmain"前执行的命令
+>  * 可以在bin/q.log中读到"call bootmain"前执行的命令
 ```
 	0x000fd12d:  cli    
 	0x000fd12e:  cld    
@@ -228,28 +228,22 @@ make new_Debug
 	0x000fd14b:  mov    %cr0,%eax
 	0x000fd14e:  or     $0x1,%eax
 	0x000fd152:  mov    %eax,%cr0
-
 	----------------
 	IN: 
 	0x000fd155:  ljmpl  $0x8,$0xfd15d
-
 	----------------
 	IN: 
 	0x000fd15d:  mov    $0x10,%eax
 	0x000fd162:  mov    %eax,%ds
-
 	----------------
 	IN: 
 	0x000fd164:  mov    %eax,%es
-
 	----------------
 	IN: 
 	0x000fd166:  mov    %eax,%ss
-
 	----------------
 	IN: 
 	0x000fd168:  mov    %eax,%fs
-
 	----------------
 	IN: 
 	0x000fd16a:  mov    %eax,%gs
@@ -260,6 +254,7 @@ make new_Debug
 >  * 其与bootasm.S和bootblock.asm中的代码相同。
 
 [练习2.4]自己找一个bootloader或内核中的代码位置，设置断点并进行测试。 
+
 > * 在makefile中添加内容
 	```
 	new_Debug2: $(UCOREIMG)
@@ -268,6 +263,7 @@ make new_Debug
 		$(V)$(TERMINAL) -e "gdb -q -x tools/new_Debug2"
 	```
 > * 新建tools/new_Debug2，在里面添加内容
+
 	```
 	file obj/bootblock.o
 	target remote :1234
@@ -275,6 +271,7 @@ make new_Debug
 	continue
 	```
 > * 在终端使用命令进入调试模式，成功跳到断点bootmain.c中的第10行
+
 	```
 	make new_Debug2
 	```
@@ -283,8 +280,8 @@ make new_Debug
 分析bootloader 进入保护模式的过程。
 
 
-
 >  * 首先清理环境：将flag和段寄存器ds、es、ss置0
+
 ```
 	.code16
 	    cli
@@ -296,6 +293,7 @@ make new_Debug
 ```
 
 > * 等待8042键盘控制器不忙，将数据0xd1送到端口0x64，将数据0xdf送到端口0x60，开启A20
+
 ```
 	seta20.1:               
 	    inb $0x64, %al       
@@ -314,12 +312,14 @@ make new_Debug
 	    outb %al, $0x60    
 ```
 
-> * 初始化GDT表
+>  * 初始化GDT表
+
 ```
 	    lgdt gdtdesc
 ```
 
 > * 使能cr0寄存器的PE位置，从实模式进入保护模式
+
 ```
 	    movl %cr0, %eax
 	    orl $CR0_PE_ON, %eax
@@ -327,11 +327,13 @@ make new_Debug
 ```
 
 > * 跳转到32位地址下的下一条指令
+
 ```
 	 ljmp $PROT_MODE_CSEG, $protcseg
 ```
 
 > * 设置保护模式下的段寄存器DS、ES、FS、GS、SS，并建立堆栈
+
 ```
 	.code32
 	protcseg:
@@ -345,6 +347,7 @@ make new_Debug
 	    movl $start, %esp
 ```
 > * 跳转到bootmain函数
+
 ```
 	    call bootmain
 ```
@@ -355,6 +358,7 @@ make new_Debug
 
 
 >  * 观察readsect函数，
+
 ```
 	static void
 	readsect(void *dst, uint32_t secno) {
@@ -379,6 +383,7 @@ make new_Debug
 
 
 >  * 观察bootmain函数
+
 ```
 	void
 	bootmain(void) {
@@ -415,6 +420,7 @@ make new_Debug
 ## [练习5] 
 实现函数调用堆栈跟踪函数 
 >  * 根据提示：
+
 ```
      /* LAB1 YOUR CODE : STEP 1 */
      /* (1) call read_ebp() to get the value of ebp. the type is (uint32_t);
@@ -430,6 +436,7 @@ make new_Debug
       */
 ```
 >  * 完成如下代码，在代码编写中发现需要判断ebp是否为0，否则会不断输出，同时需要在for循环外对变量进行初始化，在for循环内部初始化会报错
+
 ```
    uint32_t ebp = read_ebp();
     uint32_t eip = read_eip();
@@ -497,6 +504,7 @@ extern uintptr_t __vectors[];
 [练习6.3] 请编程完善trap.c中的中断处理函数trap，在对时钟中断进行处理的部分填写trap函数
 
 >  * 根据提示可得如下代码：
+
 ```
  		ticks ++;
         if (ticks % TICK_NUM == 0) {
