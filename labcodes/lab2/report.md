@@ -7,7 +7,7 @@
 ## [练习1]
 
 1.	<b>实现first-fit连续物理内存分配算法。(需要编程)</b>
-	> * 实现步骤：
+	> * 实现步骤如下：
 	> * 在memlayout.h文件中了解了结构体Page的成员基本属性以及参数设置方式。其中ref属性使用set_page_ref函数进行设置，flags的两个标志位，PG_reserved与PG_property使用Set与Clear方法去设为1或者0。
 	
 	```
