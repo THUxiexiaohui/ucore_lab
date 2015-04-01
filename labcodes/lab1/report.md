@@ -505,58 +505,24 @@ extern uintptr_t __vectors[];
         break;
 ```
 
+## 与标准答案的差异
+---
+在练习2中，答案修改了原有的gdb命令文件；而我在makefile中添加了新的命令("new_Debug与new_Debug2")，并添加了新的gdb命令文件
 
-## [练习7]
+## 本实验中重要的知识点
+---
+1.	<b>第一条指令的位置获取</b><br/>
+2.	<b>bootloader加载ucore的过程</b><br/>
+3.	<b>makefile的基本语法</b><br/>
+4.  <b>gdb的使用</b><br/>
 
-增加syscall功能，即增加一用户态函数（可执行一特定系统调用：获得时钟计数值），
-当内核初始完毕后，可从内核态返回到用户态的函数，而用户态的函数又通过系统调用得到内核态的服务
+## OS原理中很重要但在实验中没有对应上的知识点
+---
+1.	建立GDT的具体过程和细节
+2.	如何正确使用各种寄存器，比如使能等等
+3.	各种各样的表中的表项，其具体每位的作用，和在实现时的注意点
 
-在idt_init中，将用户态调用SWITCH_TOK中断的权限打开。
-	SETGATE(idt[T_SWITCH_TOK], 1, KERNEL_CS, __vectors[T_SWITCH_TOK], 3);
 
-在trap_dispatch中，将iret时会从堆栈弹出的段寄存器进行修改
-	对TO User
-```
-	    tf->tf_cs = USER_CS;
-	    tf->tf_ds = USER_DS;
-	    tf->tf_es = USER_DS;
-	    tf->tf_ss = USER_DS;
-```
-	对TO Kernel
 
-```
-	    tf->tf_cs = KERNEL_CS;
-	    tf->tf_ds = KERNEL_DS;
-	    tf->tf_es = KERNEL_DS;
-```
-
-在lab1_switch_to_user中，调用T_SWITCH_TOU中断。
-注意从中断返回时，会多pop两位，并用这两位的值更新ss,sp，损坏堆栈。
-所以要先把栈压两位，并在从中断返回后修复esp。
-```
-	asm volatile (
-	    "sub $0x8, %%esp \n"
-	    "int %0 \n"
-	    "movl %%ebp, %%esp"
-	    : 
-	    : "i"(T_SWITCH_TOU)
-	);
-```
-
-在lab1_switch_to_kernel中，调用T_SWITCH_TOK中断。
-注意从中断返回时，esp仍在TSS指示的堆栈中。所以要在从中断返回后修复esp。
-```
-	asm volatile (
-	    "int %0 \n"
-	    "movl %%ebp, %%esp \n"
-	    : 
-	    : "i"(T_SWITCH_TOK)
-	);
-```
-
-但这样不能正常输出文本。根据提示，在trap_dispatch中转User态时，将调用io所需权限降低。
-```
-	tf->tf_eflags |= 0x3000;
-```
 
 

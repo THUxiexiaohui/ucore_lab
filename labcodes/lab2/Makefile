@@ -244,7 +244,14 @@ gdb:
 
 debug: targets
 	$(V)$(QEMU) -S -s -parallel stdio $(QEMUOPTS) -serial null
-
+new_Debug: $(UCOREIMG)
+	$(V)$(TERMINAL) -e "$(QEMU) -S -s -d in_asm -D $(BINDIR)/q.log -monitor stdio -hda $< -serial null"
+	$(V)sleep 2
+	$(V)$(TERMINAL) -e "gdb -q  -x tools/new_Debug"
+new_Debug2: $(UCOREIMG)
+		$(V)$(TERMINAL) -e "$(QEMU) -S -s -d in_asm -D $(BINDIR)/q.log -monitor stdio -hda $< -serial null"
+		$(V)sleep 2
+		$(V)$(TERMINAL) -e "gdb -q -x tools/new_Debug2"
 debug-mon: targets
 	$(V)$(QEMU) -S -s -monitor stdio $(QEMUOPTS) -parallel null -serial null
 

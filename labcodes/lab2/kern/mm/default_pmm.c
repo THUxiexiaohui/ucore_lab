@@ -71,72 +71,86 @@ default_init_memmap(struct Page *base, size_t n) {
     struct Page *p = base;
     for (; p != base + n; p ++) {
         assert(PageReserved(p));
-        p->flags = p->property = 0;
+        ClearPageReserved(p);
+        if (p == base) {
+        	SetPageProperty(p);
+        	p->property = n;
+        } else {
+        	ClearPageProperty(p);                     
+        }
         set_page_ref(p, 0);
     }
-    base->property = n;
-    SetPageProperty(base);
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    list_add_before(&free_list, &(base->page_link));
 }
 
 static struct Page *
 default_alloc_pages(size_t n) {
     assert(n > 0);
-    if (n > nr_free) {
-        return NULL;
-    }
-    struct Page *page = NULL;
+    struct Page *fp = NULL;
     list_entry_t *le = &free_list;
-    while ((le = list_next(le)) != &free_list) {
+    while ((le = list_next(le)) != &free_list) {		
         struct Page *p = le2page(le, page_link);
         if (p->property >= n) {
-            page = p;
+            fp = p;
             break;
         }
     }
-    if (page != NULL) {
-        list_del(&(page->page_link));
-        if (page->property > n) {
-            struct Page *p = page + n;
-            p->property = page->property - n;
-            list_add(&free_list, &(p->page_link));
+    if (fp == NULL) return fp;
+
+    int i, remain = fp->property - n;
+    for (i = 0; i < n; ++i) {							
+    	struct Page *p = fp + i;
+    	SetPageReserved(p);
+    	ClearPageProperty(p);
     }
-        nr_free -= n;
-        ClearPageProperty(page);
+    list_entry_t *lenext = le->next;
+    list_del(le);
+    if (remain > 0) {									
+    	struct Page *newp = fp + n;
+    	SetPageProperty(newp);
+    	newp->property = remain;
+    	list_add_before(lenext, &(newp->page_link));
     }
-    return page;
+    nr_free -= n;
+    return fp;
 }
 
 static void
 default_free_pages(struct Page *base, size_t n) {
     assert(n > 0);
     struct Page *p = base;
-    for (; p != base + n; p ++) {
-        assert(!PageReserved(p) && !PageProperty(p));
-        p->flags = 0;
+    for (; p != base + n; p ++) {							
+        ClearPageReserved(p);
+        if (p == base) {
+        	SetPageProperty(p);
+        	p->property = n;
+        } else {
+        	ClearPageProperty(p);
+        }
         set_page_ref(p, 0);
     }
-    base->property = n;
-    SetPageProperty(base);
-    list_entry_t *le = list_next(&free_list);
-    while (le != &free_list) {
-        p = le2page(le, page_link);
-        le = list_next(le);
-        if (base + base->property == p) {
-            base->property += p->property;
-            ClearPageProperty(p);
-            list_del(&(p->page_link));
-        }
-        else if (p + p->property == base) {
-            p->property += base->property;
-            ClearPageProperty(base);
-            base = p;
-            list_del(&(p->page_link));
-        }
+
+    list_entry_t *le = &free_list;
+    struct Page *prevp, *nextp;
+    nextp = le2page(le, page_link);
+    while ((le = list_next(le)) != &free_list) {			
+    	prevp = nextp;
+    	nextp = le2page(le, page_link);
+    	if (nextp > base) break;
+    }
+    list_add_before(le, &(base->page_link));				
+    if (base + base->property == nextp) {					
+    	base->property += nextp->property;
+    	ClearPageProperty(nextp);
+    	list_del(&(nextp->page_link));
+    }
+    if (prevp + prevp->property == base) {					
+    	prevp->property += base->property;
+    	ClearPageProperty(base);
+    	list_del(&(base->page_link));
     }
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
 }
 
 static size_t
