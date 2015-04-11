@@ -295,7 +295,7 @@ make new_Debug
 > * 等待8042键盘控制器不忙，将数据0xd1送到端口0x64，将数据0xdf送到端口0x60，开启A20
 
 ```
-	seta20.1:               
+	seta20.1:       
 	    inb $0x64, %al       
 	    testb $0x2, %al     
 	    jnz seta20.1        
