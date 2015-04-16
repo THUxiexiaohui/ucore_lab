@@ -309,7 +309,7 @@ print_stackframe(void) {
 	if (ebp == 0x00000000) break;
         cprintf("ebp:0x%08x eip:0x%08x args:", ebp, eip);
         for (j = 0; j < 4; j ++) {
-            cprintf("0x%08x ", (uint32_t *)ebp + 2);
+            cprintf("0x%08x ", ((uint32_t *)ebp + 2)[j]);
         }
         cprintf("\n");
         print_debuginfo(eip - 1);
