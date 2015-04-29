@@ -821,14 +821,17 @@ init_main(void *arg) {
     size_t kernel_allocated_store = kallocated();
 
     int pid = kernel_thread(user_main, NULL, 0);
+cprintf("xxx %d %d\n", nr_free_pages_store, nr_free_pages());
     if (pid <= 0) {
         panic("create user_main failed.\n");
     }
-
+cprintf("yyy %d %d\n", nr_free_pages_store, nr_free_pages());
     while (do_wait(0, NULL) == 0) {
+cprintf("ttt %d %d\n", nr_free_pages_store, nr_free_pages());
         schedule();
+cprintf("aaa %d %d\n", nr_free_pages_store, nr_free_pages());
     }
-
+	cprintf("zzz %d %d\n", nr_free_pages_store, nr_free_pages());
     cprintf("all user-mode processes have quit.\n");
     assert(initproc->cptr == NULL && initproc->yptr == NULL && initproc->optr == NULL);
     assert(nr_process == 2);
