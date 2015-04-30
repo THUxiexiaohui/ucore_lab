@@ -8,12 +8,14 @@
 
 ### 练习0
 ---
-1.      <b>添加lab1~lab4原有代码，并进行适当更新</b>
+1. 	<b>加载应用程序并执行。</b>
+ 	
 > * alloc_proc() in proc.c
-	```
-	proc->wait_state = 0;
-        proc->cptr = proc->optr = proc->yptr = NULL;
-	```
+```
+proc->wait_state = 0;
+proc->cptr = proc->optr = proc->yptr = NULL;
+```
+
 > * do_fork() in proc.c
 	```
 	 bool intr_flag;
