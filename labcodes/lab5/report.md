@@ -8,17 +8,17 @@
 
 ### 练习0
 ---
-1. 	<b>加载应用程序并执行。</b>
+1. 	<b>添加lab1~lab4原有代码，并进行适当更新。</b>
  	
-> * alloc_proc() in proc.c
-```
-proc->wait_state = 0;
-proc->cptr = proc->optr = proc->yptr = NULL;
-```
-
-> * do_fork() in proc.c
+	> * alloc_proc() in proc.c
 	```
-	 bool intr_flag;
+	proc->wait_state = 0;
+	proc->cptr = proc->optr = proc->yptr = NULL;	
+	```
+
+	> * do_fork() in proc.c
+	```
+	bool intr_flag;
    	 local_intr_save(intr_flag);
     	{
        	proc->pid = get_pid();
@@ -27,7 +27,7 @@ proc->cptr = proc->optr = proc->yptr = NULL;
     	}
     	local_intr_restore(intr_flag);
 	```
-> * idt_init() in trap.c
+	> * idt_init() in trap.c
 	```
 	 extern uintptr_t __vectors[];
    	 int i;
@@ -37,7 +37,7 @@ proc->cptr = proc->optr = proc->yptr = NULL;
     	SETGATE(idt[T_SYSCALL], 1, GD_KTEXT, __vectors[T_SYSCALL], DPL_USER);
     	lidt(&idt_pd);
 	```
-> * trap_dispatch() in trap.c
+	> * trap_dispatch() in trap.c
 	```
 	ticks ++;
         if (ticks % TICK_NUM == 0) {
