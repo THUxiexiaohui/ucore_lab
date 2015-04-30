@@ -7,7 +7,6 @@
 ### 练习0
 ---
 1.      <b>添加lab1~lab4原有代码，并进行适当更新</b>
-
 	> * alloc_proc() in proc.c
 	```
 	proc->wait_state = 0;
