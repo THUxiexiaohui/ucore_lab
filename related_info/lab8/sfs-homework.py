@@ -263,6 +263,11 @@ class fs:
         # inc parent ref count
         # now add to directory
     # DONE
+	pinode = self.nameToInum[parent]
+	if pinode.getFreeEntries():
+		tinode = self.nameToInum[target]
+		if tinode.getFreeEntries():
+			
         return tinum
 
     def createFile(self, parent, newfile, ftype):
