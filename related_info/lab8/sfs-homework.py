@@ -211,6 +211,9 @@ class fs:
         for i in range(self.numData):
             print self.data[i].dump(),
         print ''
+        print self.files
+        print self.dirs
+        print self.nameToInum
 
     def makeName(self):
         p = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -244,6 +247,23 @@ class fs:
             print 'unlink("%s");' % tfile
 
         inum = self.nameToInum[tfile]
+        assert(self.inodes[inum].getType() == 'f')
+
+        dnum = self.inodes[inum].getAddr()
+        if self.inodes[inum].getRefCnt() == 1:
+            self.inodes[inum].free()
+            self.data[dnum].free()
+        else:
+            self.inodes[inum].decRefCnt()
+
+        
+        pname = self.getParent(tfile)
+        pinum = self.nameToInum[pname]
+        pdnum = self.inodes[pinum].getAddr()
+        self.inodes[pinum].decRefCnt()
+        self.data[pdnum].delDirEntry(tfile)
+        self.files.remove(tfile)
+        self.nameToInum.pop(tfile)
 
     # YOUR CODE, YOUR ID
         # IF inode.refcnt ==1, THEN free data blocks first, then free inode, ELSE dec indoe.refcnt
@@ -251,10 +271,10 @@ class fs:
     # DONE
 
         # finally, remove from files list
-        self.files.remove(tfile)
         return 0
 
     def createLink(self, target, newfile, parent):
+
     # YOUR CODE, YOUR ID
         # find info about parent
         # is there room in the parent directory?
@@ -263,10 +283,15 @@ class fs:
         # inc parent ref count
         # now add to directory
     # DONE
-	pinode = self.nameToInum[parent]
-	if pinode.getFreeEntries():
-		tinode = self.nameToInum[target]
-		if tinode.getFreeEntries():
+	pinum = self.nameToInum[parent]
+        pdatanum = self.inodes[pinum].getAddr()
+	if self.data[pdatanum].getFreeEntries():
+            tinum = self.nameToInum[target]
+            if tinum < len(self.inodes) and tinum >= 0:
+                self.inodes[pinum].incRefCnt()
+                self.inodes[tinum].incRefCnt()
+                pdata = self.inodes[pinum].getAddr()
+                self.data[pdata].addDirEntry(newfile,tinum)
 			
         return tinum
 
@@ -281,195 +306,38 @@ class fs:
         # inc parent ref count
         # and add to directory of parent
     # DONE
+        print 'createFile(',
+        print parent,
+        print ', ' + newfile + ', ' + ftype + ')'
+        pinum = self.nameToInum[parent]
+        pdatanum = self.inodes[pinum].getAddr()
+        free_count = self.data[pdatanum].getFreeEntries()
+        if free_count <= 0:
+            return -1
+        if newfile in self.files:
+            return -1
+        inum = self.inodeAlloc()
+        if inum == -1:
+            return -1
+        if ftype == 'f':
+            self.inodes[inum].setAll(ftype, -1, 1)
+            currfile = parent + '/' + newfile
+ #           self.nameToInum[currfile] = inum
+        else:
+            datanum = self.dataAlloc()
+            if datanum == -1:
+                return -1
+            self.inodes[inum].setAll(ftype, datanum, 2)
+            self.data[datanum].setType('d')
+            if parent == '/':
+                currdir = parent + newfile
+            else:
+                currdir = parent + '/' + newfile
+            self.data[datanum].addDirEntry('.', inum)
+            self.data[datanum].addDirEntry('..', pinum)
+#            self.nameToInum[currdir] = inum
+        self.data[pdatanum].addDirEntry(newfile, inum)
+        self.inodes[pinum].incRefCnt()
         return inum
 
-    def writeFile(self, tfile, data):
-        inum = self.nameToInum[tfile]
-        curSize = self.inodes[inum].getSize()
-        dprint('writeFile: inum:%d cursize:%d refcnt:%d' % (inum, curSize, self.inodes[inum].getRefCnt()))
-
-    # YOUR CODE, YOUR ID
-        # file is full?
-        # no data blocks left
-        # write file data
-    # DONE
-
-        if printOps:
-            print 'fd=open("%s", O_WRONLY|O_APPEND); write(fd, buf, BLOCKSIZE); close(fd);' % tfile
-        return 0
-            
-    def doDelete(self):
-        dprint('doDelete')
-        if len(self.files) == 0:
-            return -1
-        dfile = self.files[int(random.random() * len(self.files))]
-        dprint('try delete(%s)' % dfile)
-        return self.deleteFile(dfile)
-
-    def doLink(self):
-        dprint('doLink')
-        if len(self.files) == 0:
-            return -1
-        parent = self.dirs[int(random.random() * len(self.dirs))]
-        nfile = self.makeName()
-
-        # pick random target
-        target = self.files[int(random.random() * len(self.files))]
-
-        # get full name of newfile
-        if parent == '/':
-            fullName = parent + nfile
-        else:
-            fullName = parent + '/' + nfile
-
-        dprint('try createLink(%s %s %s)' % (target, nfile, parent))
-        inum = self.createLink(target, nfile, parent)
-        if inum >= 0:
-            self.files.append(fullName)
-            self.nameToInum[fullName] = inum
-            if printOps:
-                print 'link("%s", "%s");' % (target, fullName)
-            return 0
-        return -1
-    
-    def doCreate(self, ftype):
-        dprint('doCreate')
-        parent = self.dirs[int(random.random() * len(self.dirs))]
-        nfile = self.makeName()
-        if ftype == 'd':
-            tlist = self.dirs
-        else:
-            tlist = self.files
-
-        if parent == '/':
-            fullName = parent + nfile
-        else:
-            fullName = parent + '/' + nfile
-
-        dprint('try createFile(%s %s %s)' % (parent, nfile, ftype))
-        inum = self.createFile(parent, nfile, ftype)
-        if inum >= 0:
-            tlist.append(fullName)
-            self.nameToInum[fullName] = inum
-            if parent == '/':
-                parent = ''
-            if ftype == 'd':
-                if printOps:
-                    print 'mkdir("%s/%s");' % (parent, nfile)
-            else:
-                if printOps:
-                    print 'creat("%s/%s");' % (parent, nfile)
-            return 0
-        return -1
-
-    def doAppend(self):
-        dprint('doAppend')
-        if len(self.files) == 0:
-            return -1
-        afile = self.files[int(random.random() * len(self.files))]
-        dprint('try writeFile(%s)' % afile)
-        data = chr(ord('a') + int(random.random() * 26))
-        rc = self.writeFile(afile, data)
-        return rc
-
-    def run(self, numRequests):
-        self.percentMkdir  = 0.40
-        self.percentWrite  = 0.40
-        self.percentDelete = 0.20
-        self.numRequests   = numRequests
-
-        print 'Initial state'
-        print ''
-        self.dump()
-        print ''
-        
-        for i in range(numRequests):
-            if printOps == False:
-                print 'Which operation took place?'
-            rc = -1
-            while rc == -1:
-                r = random.random()
-                if r < 0.3:
-                    rc = self.doAppend()
-                    dprint('doAppend rc:%d' % rc)
-                elif r < 0.5:
-                    rc = self.doDelete()
-                    dprint('doDelete rc:%d' % rc)
-                elif r < 0.7:
-                    rc = self.doLink()
-                    dprint('doLink rc:%d' % rc)
-                else:
-                    if random.random() < 0.75:
-                        rc = self.doCreate('f')
-                        dprint('doCreate(f) rc:%d' % rc)
-                    else:
-                        rc = self.doCreate('d')
-                        dprint('doCreate(d) rc:%d' % rc)
-            if printState == True:
-                print ''
-                self.dump()
-                print ''
-            else:
-                print ''
-                print '  State of file system (inode bitmap, inodes, data bitmap, data)?'
-                print ''
-
-        if printFinal:
-            print ''
-            print 'Summary of files, directories::'
-            print ''
-            print '  Files:      ', self.files
-            print '  Directories:', self.dirs
-            print ''
-
-#
-# main program
-#
-parser = OptionParser()
-
-parser.add_option('-s', '--seed',        default=0,     help='the random seed',                      action='store', type='int', dest='seed')
-parser.add_option('-i', '--numInodes',   default=8,     help='number of inodes in file system',      action='store', type='int', dest='numInodes') 
-parser.add_option('-d', '--numData',     default=8,     help='number of data blocks in file system', action='store', type='int', dest='numData') 
-parser.add_option('-n', '--numRequests', default=10,    help='number of requests to simulate',       action='store', type='int', dest='numRequests')
-parser.add_option('-r', '--reverse',     default=False, help='instead of printing state, print ops', action='store_true',        dest='reverse')
-parser.add_option('-p', '--printFinal',  default=False, help='print the final set of files/dirs',    action='store_true',        dest='printFinal')
-
-(options, args) = parser.parse_args()
-
-print 'ARG seed',        options.seed
-print 'ARG numInodes',   options.numInodes
-print 'ARG numData',     options.numData
-print 'ARG numRequests', options.numRequests
-print 'ARG reverse',     options.reverse
-print 'ARG printFinal',  options.printFinal
-print ''
-
-random.seed(options.seed)
-
-if options.reverse:
-    printState = False
-    printOps   = True
-else:
-    printState = True
-    printOps   = False
-
-
-printOps   = True
-printState = True
-
-printFinal = options.printFinal
-
-#
-# have to generate RANDOM requests to the file system
-# that are VALID!
-#
-
-f = fs(options.numInodes, options.numData)
-
-#
-# ops: mkdir rmdir : create delete : append write
-#
-
-f.run(options.numRequests)
-
-
+   
